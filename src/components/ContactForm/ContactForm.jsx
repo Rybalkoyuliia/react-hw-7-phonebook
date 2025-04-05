@@ -1,9 +1,6 @@
-import React from 'react';
-
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-
 import ReactInputMask from 'react-input-mask';
-
 import {
   StyledButton,
   StyledForm,
@@ -11,53 +8,60 @@ import {
   StyledInputsWrapper,
   StyledLabel,
 } from './ContactForm.styled';
-import { addContact, getContacts } from '../../redux/phonebook/slice';
+import { getContacts } from '../../redux/phonebook/slice';
+import { addContactThunk } from '../../redux/phonebook/operations';
 
 export const ContactForm = () => {
   const dispatch = useDispatch();
   const contactList = useSelector(getContacts);
 
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+
   const handleAddContact = e => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const addedName = form.elements.name.value;
-    const addedPhone = form.elements.number.value;
 
-    const newContact = { name: addedName, number: addedPhone };
+    const addedPhone = phone.replace(/\D/g, '');
 
+    const phoneRegex = /^\d{10}$/;
+
+    if (!phoneRegex.test(addedPhone)) {
+      alert(
+        'Invalid phone number format. Please follow the (000)000-0000 format without any letters or symbols.'
+      );
+      return;
+    }
+
+    const newContact = { name, phone };
     const currentContacts = contactList || [];
 
     const existingContact = currentContacts.some(
-      contact => contact.name === addedName
+      contact => contact.name === name
     );
-
     if (existingContact) {
-      alert(`${addedName} is already in contacts`);
+      alert(`${name} is already in contacts`);
       return;
     }
 
     const existingPhoneNumber = currentContacts.some(
-      contact => contact.number === addedPhone
+      contact => contact.phone === phone
     );
-
     if (existingPhoneNumber) {
       const contactWithSameNumber = currentContacts.find(
-        contact => contact.number === addedPhone
+        contact => contact.phone === phone
       );
-
       if (contactWithSameNumber) {
         alert(
-          `${addedPhone} is already in contacts under the name ${contactWithSameNumber.name}`
+          `${phone} is already in contacts under the name ${contactWithSameNumber.name}`
         );
         return;
       }
     }
 
-    dispatch(addContact(newContact));
+    dispatch(addContactThunk(newContact));
 
-    setTimeout(() => {
-      form.reset();
-    }, 0);
+    setName('');
+    setPhone('');
   };
 
   return (
@@ -79,10 +83,13 @@ export const ContactForm = () => {
               id="name"
               autoComplete="name"
               placeholder="Enter name"
+              value={name}
+              onChange={e => setName(e.target.value)}
               required
             />
           </StyledLabel>
-          <StyledLabel htmlFor="number">
+
+          <StyledLabel htmlFor="phone">
             Number
             <ReactInputMask
               style={{
@@ -94,13 +101,16 @@ export const ContactForm = () => {
               }}
               mask="(999)999-9999"
               type="tel"
-              name="number"
-              id="number"
+              name="phone"
+              id="phone"
               placeholder="(000)000-0000"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
               required
-            ></ReactInputMask>
+            />
           </StyledLabel>
         </StyledInputsWrapper>
+
         <StyledButton type="submit">Add contact</StyledButton>
       </StyledForm>
     </StyledFormWrapper>
